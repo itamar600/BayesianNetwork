@@ -2,10 +2,18 @@ import java.io.BufferedReader;
 import java.io.FileReader;
 import java.util.ArrayList;
 
-
+/**
+ * This class reci 
+ * @author Itamar Ziv-On
+ *
+ */
 public class LoadBN {
 	BN bN;
 	
+	/**
+	 * 
+	 * @param file_name
+	 */
 	public LoadBN(String file_name) {
 		bN= new BN();
 		BufferedReader br;
@@ -13,14 +21,14 @@ public class LoadBN {
 		try {
 			br = new BufferedReader(new FileReader(file_name));
 			line = br.readLine();
-			System.out.println(line);
+//			System.out.println(line);
 			variable_line = br.readLine();
-			System.out.println(variable_line);
+//			System.out.println(variable_line);
 			buildBN(variable_line);
 			while(!(line=br.readLine()).equals("Queries")){
 				if(line.length()>1) {
 					String[] line2= line.split(" ");
-					System.out.println("line2 "+ line2[0]);
+//					System.out.println("line2 "+ line2[0]);
 					if(line2[0].equals("Var"))
 						loadVar(br, line2[1]);
 				}
@@ -33,6 +41,11 @@ public class LoadBN {
 		}
 	}
 	
+	/**
+	 * 
+	 * @param br
+	 * @param var_name
+	 */
 	private void loadVar(BufferedReader br, String var_name) {
 		
 		String line;
@@ -54,6 +67,11 @@ public class LoadBN {
 			
 	}
 	
+	/**
+	 * 
+	 * @param br
+	 * @param var_name
+	 */
 	private void loadCPT(BufferedReader br, String var_name) {
 		String line;
 		try {
@@ -67,33 +85,48 @@ public class LoadBN {
 			}
 		
 	}
-
+	/**
+	 * 
+	 * @param br
+	 * @param var_name
+	 * @param parents_name
+	 */
 	private void loadParents(BufferedReader br, String var_name, String parents_name) {
 		ArrayList<String> parents = bN.getVar(var_name).getParents();
 		if(!(parents_name.equals("none"))){
 			for(String parent: parents_name.split(",")) {
 				parents.add(parent);
-				System.out.println("parent: " + parent);
+//				System.out.println("parent: " + parent);
 			}
 		}
 		
 	}
 
+	/**
+	 * 
+	 * @param br
+	 * @param var_name
+	 * @param values
+	 */
 	private void loadValues(BufferedReader br, String var_name, String values) {
 		ArrayList<String> domain = bN.getVar(var_name).getVarDomain();
 		for(String val: values.split(",")) {
 			domain.add(val);
-			System.out.println("value: "+ val);
+//			System.out.println("value: "+ val);
 		}
 		
 	}
 	
+	/**
+	 * 
+	 * @param br
+	 */
 	private void loadQueries(BufferedReader br) {
 		String line;
 		try {
 			while((line=br.readLine())!=null) {
 				bN.addQuery(line);
-				System.out.println("query: " + line);
+//				System.out.println("query: " + line);
 			}
 		}
 		catch(Exception e) {
@@ -103,6 +136,11 @@ public class LoadBN {
 	public BN getBN() {
 		return bN;
 	}
+	
+	/**
+	 * 
+	 * @param line
+	 */
 	private void buildBN(String line) {
 		line = line.replace(" ", "");
 		String[] variables = line.split(":")[1].split(",");
