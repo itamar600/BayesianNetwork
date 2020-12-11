@@ -3,7 +3,7 @@ import java.util.HashMap;
 import java.util.Map;
 
 /**
- * 
+ * This class represents a Bayesian network and also includes queries about this network.
  * @author Itamar Ziv-On
  *
  */
@@ -13,9 +13,7 @@ public class BN {
 	private Map<String, ArrayList<String>> variables_parents;
 	private ArrayList<String> queries;
 	
-	/**
-	 * 
-	 */
+	
 	public BN() {
 		variables_name = new ArrayList<String>();
 		variables = new HashMap<String, VariableNode>();
@@ -24,18 +22,17 @@ public class BN {
 	}
 	
 	/**
-	 * 
+	 * The method adds a variable to the network.
 	 * @param var_name
 	 * @param var
 	 */
 	public void addVariable(String var_name, VariableNode var) {
 		variables.put(var_name, var);
 		variables_name.add(var_name);
-//		System.out.println("var_name: " + var_name);
 	}
 	
 	/**
-	 * 
+	 * The method adds parent to the variable located in the network.
 	 * @param var_name
 	 * @param parent_name
 	 */
@@ -50,51 +47,30 @@ public class BN {
 		}
 	}
 	
-	/**
-	 * 
-	 * @param query
-	 */
 	public void addQuery(String query) {
 		queries.add(query);
 	}
 	
-	/**
-	 * 
-	 * @return
-	 */
+/////////////////////////////////////////////////////////////////////////////////
+/////////////////////////////////////GETTERS/////////////////////////////////////
+/////////////////////////////////////////////////////////////////////////////////  
+	
 	public ArrayList<String> getVarsName(){
 		return variables_name;
 	}
 	
-	/**
-	 * 
-	 * @return
-	 */
 	public Map<String, VariableNode> getVarMap(){
 		return variables;
 	}
 	
-	/**
-	 * 
-	 * @param var_name
-	 * @return
-	 */
 	public VariableNode getVar(String var_name) {
 		return variables.get(var_name);
 	}
 	
-	/**
-	 * 
-	 * @return
-	 */
 	public Map<String, ArrayList<String>> getVarParents(){
 		return variables_parents;
 	}
 	
-	/**
-	 * 
-	 * @return
-	 */
 	public ArrayList<String> getQueries(){
 		return queries;
 	}

@@ -5,7 +5,7 @@ import java.util.Iterator;
 import java.util.Map;
 
 /**
- * 
+ * This class represents algorithms for calculating queries on a Bayesian network.
  * @author Itamar Ziv-On
  *
  */
@@ -23,33 +23,28 @@ public class Algorithms {
 	}
 
 	/**
-	 * 
+	 * The method selects the query resolution algorithm based on the number that appears next to the query in the file.
+	 *  Returns a string that includes the answers to all queries and how many addition and multiplication operations were required for each query.
 	 * @return
 	 */
 	public String answerQueries() {
-		String[] event;
-		// System.out.println("size: " + bN.getQueries().size());
 		for (String query : bN.getQueries()) {
 			int algo_num = Integer.parseInt(query.substring(query.length() - 1, query.length()));
 			parseQuery(query);
 			if (hasDirectAnswer()) {
 				output += new DecimalFormat("0.00000").format(
 						bN.getVar(query_vars.get(0)).returnProb(query_vals.get(0), query_vars, query_vals)) + ",0,0\n";
-				// System.out.println("Direct answer: "+ output);
 				continue;
 			}
 			switch (algo_num) {
 			case (1):
 				fullJointDistribution();
-//				fullJointDistribution(query.substring(0, query.length() - 3));
 				break;
 			case (2):
-				variableElimination();
-//				variableElimination(query.substring(0, query.length() - 3));
+				variableElimination(algo_num);
 				break;
 			case (3):
-				variableEliminationHeuristic();
-//				variableEliminationHeuristic(query.substring(0, query.length() - 3));
+				variableElimination(algo_num);
 				break;
 			}
 		}
@@ -57,12 +52,12 @@ public class Algorithms {
 	}
 
 	/**
-	 * 
+	 * The method returns whether the answer to the query is explicit in the cpt of the query variable.
 	 * @return
 	 */
 	private boolean hasDirectAnswer() {
 		VariableNode var = bN.getVar(query_vars.get(0));
-		// query_vars contains var.
+		// query_vars contains var
 		if ((var.getParents().size() + 1) != query_vars.size())
 			return false;
 		for (String parent : var.getParents())
@@ -72,7 +67,7 @@ public class Algorithms {
 	}
 
 	/**
-	 * 
+	 * The method convert the query from a string to an array of variables and an array of values that are matched in their indexes.
 	 * @param query
 	 */
 	private void parseQuery(String query) {
@@ -92,31 +87,29 @@ public class Algorithms {
 		}
 
 	}
+	
+	 ////////////////////////////////////////////////////////////
+    //////////////////THE ALGORITHMS////////////////////////////
+    ////////////////////////////////////////////////////////////
 
 	/**
-	 * 
+	 * The algorithm makes join between all the CPT according to evidence variables to answer the query.
 	 */
 	private void fullJointDistribution() {
 
-//		ArrayList<String> hidden_variables = new ArrayList<String>();
 		ArrayList<String> all_variables = bN.getVarsName();
-//		for (int i = 0; i < all_variables.size(); i++) {
-//			if (!query_vars.contains(all_variables.get(i)))
-//				others_variables.add(all_variables.get(i));
-//		}
-//		System.out.println("variables:" + query_vars);
-//		System.out.println("all_variables:" + all_variables);
-//		System.out.println("others_variables:" + others_variables);
 		ArrayList<String> hidden_variables = findHiddenVars(bN.getVarsName()); 
 		ArrayList<ArrayList<String>> others_values = findCombinations(hidden_variables);
 		ArrayList<String> values = new ArrayList<String>();
-		query_vars.addAll(hidden_variables);
+		ArrayList<String> variables_names = new ArrayList<String>();
+		variables_names.addAll(query_vars);
+		variables_names.addAll(hidden_variables);
 		int sum_x = 0, sum_plus = 0;
 		double original_combination = 0, sum_combination, sum_combinations, sum_all = 0;
-		int index_value = findValueInd(query_vars.get(0), query_vals.get(0));
-		for (int i = 0; i < bN.getVar(query_vars.get(0)).getVarDomain().size(); i++) {
+		int index_value = findValueInd(variables_names.get(0), query_vals.get(0));
+		for (int i = 0; i < bN.getVar(variables_names.get(0)).getVarValues().size(); i++) {
 			sum_combinations = 0;
-			query_vals.set(0, bN.getVar(query_vars.get(0)).getVarDomain().get(i));
+			query_vals.set(0, bN.getVar(variables_names.get(0)).getVarValues().get(i));
 			for (int j = 0; j < others_values.size(); j++) {
 				sum_combination = 1;
 				values.clear();
@@ -124,9 +117,9 @@ public class Algorithms {
 				values.addAll(others_values.get(j));
 				for (int z = 0; z < all_variables.size(); z++) {
 					if (z == 0)
-						sum_combination = bN.getVar(query_vars.get(z)).returnProb(values.get(z), query_vars, values);
+						sum_combination = bN.getVar(variables_names.get(z)).returnProb(values.get(z), variables_names, values);
 					else {
-						sum_combination *= bN.getVar(query_vars.get(z)).returnProb(values.get(z), query_vars, values);
+						sum_combination *= bN.getVar(variables_names.get(z)).returnProb(values.get(z), variables_names, values);
 						sum_x++;
 					}
 				}
@@ -147,69 +140,16 @@ public class Algorithms {
 			}
 		}
 		output += new DecimalFormat("0.00000").format(original_combination / sum_all) + "," + sum_plus + "," + sum_x + "\n";
-//		System.out.println(output);
-//		System.out.println(
-//				"The answer is : " + original_combination / sum_all + ", num of plus: " + sum_plus + ", num of x: " + sum_x);
-//		for(int i = 0; i< all_variables.size(); i++) {
-//			System.out.println(bN.getVar().get(variables.get(i)).returnProb(domains.get(i), variables, domains));
-//		}
 	}
 
 	/**
-	 * 
-	 * @param var_name
-	 * @param value
+	 * The algorithm creates factors according to the evidence variables and joins them according to the hidden variables
+	 * and makes an elimination of the factor according to the hidden variable, until it has no more hidden variables.
+	 * then joins the remaining factors and makes an elimination according to the query variable and normalizes the answer to the query.
+	 * The order for selecting the variables for the elimination depends on algo_num, if 2 then according to the ABC, if 3 by heuristic.
 	 * @return
 	 */
-	private int findValueInd(String var_name, String value) {
-		return bN.getVar(var_name).getVarDomain().indexOf(value);
-	}
-	
-	/**
-	 * 
-	 * @param relevant_vars 
-	 * @return
-	 */
-	private ArrayList<String> findHiddenVars(ArrayList<String> relevant_vars){
-		ArrayList<String> hidden_vars = new ArrayList<String>();
-		for (int i = 0; i < bN.getVarsName().size(); i++) {
-			if (!query_vars.contains(bN.getVarsName().get(i)) && relevant_vars.contains(bN.getVarsName().get(i)) )
-				hidden_vars.add(bN.getVarsName().get(i));
-		}
-		return hidden_vars;
-	}
-	
-	/**
-	 * 
-	 * @param others_variables
-	 * @return
-	 */
-	private ArrayList<ArrayList<String>> findCombinations(ArrayList<String> others_variables) {
-		int combinations_number = 1;
-		ArrayList<ArrayList<String>> all_combinations = new ArrayList<ArrayList<String>>();
-		for (String var_name : others_variables) {
-			combinations_number *= bN.getVar(var_name).getVarDomain().size();
-		}
-//		System.out.println(combinations_number);
-		for (int i = 0; i < combinations_number; i++) {
-			int j = 1;
-			ArrayList<String> combination = new ArrayList<String>();
-			for (String var_name : others_variables) {
-				ArrayList<String> var_values = bN.getVar(var_name).getVarDomain();
-				combination.add(var_values.get((i / j) % var_values.size()));
-				j *= var_values.size();
-			}
-//			System.out.println("List: " + combination + " j: " + j);
-			all_combinations.add(combination);
-		}
-		return all_combinations;
-	}
-
-	/**
-	 * 
-	 * @return
-	 */
-	private String variableElimination() {
+	private void variableElimination(int algo_num) {
 		ArrayList<Factor> factors = new ArrayList<Factor>();
 		Map<String, String> evidence = new HashMap<String, String>();
 		int sum_x = 0;
@@ -223,24 +163,22 @@ public class Algorithms {
 			if(isRelevant(var_name)) {
 				relevant_vars.add(var_name);	
 				Factor factor = new Factor();
-//				factor.convertCPTToFactor(bN.getVar(var_name), query_vars, query_vals);
 				factor.convertCPTToFactor(bN.getVar(var_name), evidence);
 				if (factor.getEvents().size() > 1)
 					factors.add(factor);
 			}
 		}
-//		System.out.println("relevant: "+ relevant_vars );
-//		System.out.println("Before join, factors: " + factors);
 		ArrayList<String> hidden_variables = findHiddenVars(relevant_vars);
-		hidden_variables.sort(null);
-//		ArrayList<Factor> hidden_factors;
+		if(algo_num == 2)
+			hidden_variables.sort(null);
+		else
+			heuristicSort(hidden_variables);
 		ArrayList<Integer> hidden_factors_indexes;
 		String hidden_name;
 		ArrayList<Integer> indexes_to_join = null;
 		while(!hidden_variables.isEmpty()) {
 			hidden_name = hidden_variables.get(0);
 			hidden_variables.remove(0);
-//			hidden_factors = new ArrayList<Factor>();
 			hidden_factors_indexes = new ArrayList<Integer>();
 			int i = 0;
 			while(factors.size() > 1) {
@@ -249,65 +187,150 @@ public class Algorithms {
 				for( i = 0; i < factors.size(); i++ ) {
 					if(factors.get(i).getVarsName().contains(hidden_name))
 						hidden_factors_indexes.add(i);
-						//break;
 				}
-//				for( int z = i+1; z < factors.size(); z++ ) {
-//					if(factors.get(z).getVarsName().contains(hidden_name)) {
-//						j = z;
-//						break;
-//					}
-//				}
 				if(hidden_factors_indexes.size() < 2)
 					break;
-				indexes_to_join = pickTwoToElimination(hidden_factors_indexes, factors);
-//				if (j == -1)
-//					break;
-//				System.out.println("indexes: "+ indexes_to_join+ "factors indexes: " + hidden_factors_indexes);
-//				System.out.println("Factors to join: " + factors.get(indexes_to_join.get(0)) + ", " + factors.get(indexes_to_join.get(1)));
-//				factors.set(i, factors.get(i).join(factors.get(j)));
-//				factors.remove(j);
+				indexes_to_join = pickTwoToJoin(hidden_factors_indexes, factors);
+				System.out.println("Factors to join: " + factors.get(indexes_to_join.get(0)) + ", " + factors.get(indexes_to_join.get(1)));
 				factors.set(indexes_to_join.get(0), factors.get(indexes_to_join.get(0)).join(factors.get(indexes_to_join.get(1))));
 				int index_to_remove = indexes_to_join.get(1);
 				factors.remove(index_to_remove);
-//				System.out.println("Factor after join: " + factors.get(indexes_to_join.get(0)));
+				System.out.println("Factor after join: " + factors.get(indexes_to_join.get(0)));
 				}
-			//ArrayList<Integer> indexes_to_elimination = pickTwoToElimination(hidden_factors_indexes, factors);
-			
-//				factors.set(0, factors.get(0).join(factors.get(1)));
-//			factors.remove(1);
 			factors.get(indexes_to_join.get(0)).elimination(hidden_name);
+			System.out.println("events, size: "+ factors.get(indexes_to_join.get(0)).getEvents() + ", " + factors.get(indexes_to_join.get(0)).getEvents().size());
+			if(factors.get(indexes_to_join.get(0)).getEvents().size() == 1) {
+				int index_to_remove = indexes_to_join.get(0);
+				sum_x += factors.get(index_to_remove).getSumX();
+				sum_plus += factors.get(index_to_remove).getSumPlus();
+				factors.remove(index_to_remove);
 			}
+		}
 			
 		for(int i=0; i<factors.size()-1; i++) {
+			System.out.println("Factors to join: " + factors.get(0) + ", " + factors.get(1));
 			factors.set(0, factors.get(0).join(factors.get(1)));
 			factors.remove(1);
+			System.out.println("Factor after join: " + factors.get(0));
 			
 		}
-		sum_x += factors.get(0).sum_x;
-		sum_plus += factors.get(0).sum_plus;
+		sum_x += factors.get(0).getSumX();
+		sum_plus += factors.get(0).getSumPlus();
 		int index_var = factors.get(0) .getVarsName().indexOf(query_vars.get(0));
 		String val = query_vals.get(0);
 		double prob=0 , sum=0;
 		ArrayList<String> event;
 		Iterator<ArrayList<String>> events = factors.get(0).eventsIter();
+		//for the normalization of the probability
 		while(events.hasNext()) {
 			event = events.next();
-			if(sum == 0)
+			if(sum == 0) {
 				sum =  factors.get(0).getProb(event);
+				System.out.println("sum1 : " + sum);
+			}
 			else {
 				sum +=  factors.get(0).getProb(event);
 				sum_plus++;
+				System.out.println("sum1 : " + sum);
 			}
-			if(event.get(index_var).equals(val))
+			if(event.get(index_var).equals(val)) {
 				prob = factors.get(0).getProb(event);
+				System.out.println("prob : " + prob);
+			}
 		}
-//		for(ArrayList<String> event : factors.get(0).getEvents())
+		System.out.println("prob , sum : " + prob + "," +  sum);
 		output += "" +new DecimalFormat("0.00000").format (prob/sum) +","+ sum_plus + "," + sum_x + "\n";
-//		System.out.println("After join, factors: " + factors);
-		
-//		System.out.println("answer 2 = " + output + ","+ sum_plus + "," + sum_x + "\n");
-		return null;
+		System.out.println("" +new DecimalFormat("0.00000").format (prob/sum) +","+ sum_plus + "," + sum_x + "\n");
 	}
+	
+	/**
+	 * The method selects an order of variables in a greedy way, according to the variable whose neighbors weight is lowest.
+	 * @param hidden_variables
+	 */
+	private void heuristicSort(ArrayList<String> hidden_variables) {
+		ArrayList<String> sort_hidden_variables = new ArrayList<String>();
+		ArrayList<String> evidence = new ArrayList<String>();
+		evidence.addAll(query_vars);
+		evidence.remove(0);
+		HeuristicGraph g = new HeuristicGraph(bN);
+		int min_weight;
+		int weight;
+		String min_name = "";
+		while(sort_hidden_variables.size() < hidden_variables.size()) {
+			min_weight = Integer.MAX_VALUE;
+			min_name = "";
+//			System.out.println("sort: " +g.getVars() );
+			for(String var_name : g.getVars()) {
+				weight = g.computeNeighborsWeight(var_name, evidence);
+				if(weight < min_weight) {
+					min_weight = weight;
+					min_name = var_name;
+					
+				}
+			}
+			if(hidden_variables.contains(min_name))
+				sort_hidden_variables.add(min_name);
+			g.removingVar(min_name);
+			
+		}
+		
+	}
+
+	
+    ///////////////////////////////////////////////////////////////////////////////
+          ///////////////////////////TOOLS/////////////////////////////////////
+   ///////////////////////////////////////////////////////////////////////////////
+
+	
+	
+	/**
+	 * The method receives a variable name and a value and returns the index in the list of values of that variable.
+	 * @param var_name
+	 * @param value
+	 * @return
+	 */
+	private int findValueInd(String var_name, String value) {
+		return bN.getVar(var_name).getVarValues().indexOf(value);
+	}
+	
+	/**
+	 * The method returns an array of hidden variables that relevant_vars contains. 
+	 * @param relevant_vars 
+	 * @return
+	 */
+	private ArrayList<String> findHiddenVars(ArrayList<String> relevant_vars){
+		ArrayList<String> hidden_vars = new ArrayList<String>();
+		for (int i = 0; i < bN.getVarsName().size(); i++) {
+			if (!query_vars.contains(bN.getVarsName().get(i)) && relevant_vars.contains(bN.getVarsName().get(i)) )
+				hidden_vars.add(bN.getVarsName().get(i));
+		}
+		return hidden_vars;
+	}
+	
+	/**
+	 * The method returns a Cartesian product of the values of the hidden variables.
+	 * @param hidden_variables
+	 * @return
+	 */
+	private ArrayList<ArrayList<String>> findCombinations(ArrayList<String> hidden_variables) {
+		int combinations_number = 1;
+		ArrayList<ArrayList<String>> all_combinations = new ArrayList<ArrayList<String>>();
+		for (String var_name : hidden_variables) {
+			combinations_number *= bN.getVar(var_name).getVarValues().size();
+		}
+		for (int i = 0; i < combinations_number; i++) {
+			int j = 1;
+			ArrayList<String> combination = new ArrayList<String>();
+			for (String var_name : hidden_variables) {
+				ArrayList<String> var_values = bN.getVar(var_name).getVarValues();
+				combination.add(var_values.get((i / j) % var_values.size()));
+				j *= var_values.size();
+			}
+			all_combinations.add(combination);
+		}
+		return all_combinations;
+	}
+
 	
 	/**
 	 * 
@@ -315,7 +338,7 @@ public class Algorithms {
 	 * @param factors
 	 * @return
 	 */
-	private ArrayList<Integer> pickTwoToElimination(ArrayList<Integer> hidden_factors_indexes, ArrayList<Factor> factors ) {
+	private ArrayList<Integer> pickTwoToJoin(ArrayList<Integer> hidden_factors_indexes, ArrayList<Factor> factors ) {
 		int min_num_lines = Integer.MAX_VALUE;
 		//int num_lines = 1;
 		ArrayList<String> diff_vars; 
@@ -327,27 +350,13 @@ public class Algorithms {
 			int num_lines = 1;
 			factor_a = factors.get(hidden_factors_indexes.get(i));
 			factor_b = factors.get(hidden_factors_indexes.get(i+1));
-//			System.out.println("factor_a: " + factor_a + "\nfactor_b: "+ factor_b);
-			//check if this hidden variable or the query variable and its not exist in the diff_vars yet
-//			diff_vars.clear();
-//			for(String var_name : factor_a.getVarsName()) {
-//				if((!query_vars.contains(var_name) || query_vars.get(0).equals(var_name)) && !diff_vars.contains(var_name) )
-//					diff_vars.add(var_name);
-//			}
-//			for(String var_name : factor_b.getVarsName()) {
-//				if((!query_vars.contains(var_name) || query_vars.get(0).equals(var_name)) && !diff_vars.contains(var_name) )
-//					diff_vars.add(var_name);
-//			}
 			diff_vars = findDiffVars(factor_a.getVarsName(), factor_b.getVarsName());
-//			System.out.println("diff: "+diff_vars );
 			for(String var_name : diff_vars) {
 				var = bN.getVar(var_name);
-				num_lines *= var.getVarDomain().size();
+				num_lines *= var.getVarValues().size();
 			}
-//			System.out.println("num_lines: "+num_lines );
 			//computing the number that will be adding while doing join between thats factors
 			num_lines = num_lines - Math.max(factor_a.getEvents().size(), factor_b.getEvents().size());
-//			System.out.println("num_lines: " + num_lines);
 			if(num_lines<min_num_lines)
 				min_num_lines = num_lines;
 			
@@ -368,7 +377,6 @@ public class Algorithms {
 			return num_lines_and_indexes.get(min_num_lines);
 		else {
 			int min_ascii = Integer.MAX_VALUE;
-//			int sum_ascii = 0;
 			ArrayList<Integer> indexes_to_return = new ArrayList<Integer>();
 			for(int i = 0; i < num_lines_and_indexes.get(min_num_lines).size()-1; i+=2 ) {
 				int sum_ascii = 0;
@@ -415,8 +423,6 @@ public class Algorithms {
 	private boolean isRelevant(String var_name) {
 		if(query_vars.contains(var_name))
 			return true;
-//		for(String parent_name : bN.getVar(var_name).getParents()) {
-//			if(isAncestor(var_name, bN.getVar(parent_name).getParents()))
 		if(isAncestor(var_name, query_vars))
 				return true;
 		
@@ -440,19 +446,6 @@ public class Algorithms {
 		}
 		return false;
 	}
-//	private int computeAscii(ArrayList<String> vars_name) {
-//		for(String var_name : vars_name) {
-//			if(diff_vars.contains(var_name)) {
-//				for(int j = 0; j < var_name.length(); j++)
-//					sum_ascii += (int)var_name.charAt(j);
-//	}
-	/**
-	 * 
-	 * @return
-	 */
-	private String variableEliminationHeuristic() {
-		// TODO Auto-generated method stub
-		return null;
-	}
+	
 
 }

@@ -3,17 +3,14 @@ import java.io.FileReader;
 import java.util.ArrayList;
 
 /**
- * This class reci 
+ * This class loads the file and builds variables and a Bayesian network from it. 
  * @author Itamar Ziv-On
  *
  */
 public class LoadBN {
 	BN bN;
 	
-	/**
-	 * 
-	 * @param file_name
-	 */
+	
 	public LoadBN(String file_name) {
 		bN= new BN();
 		BufferedReader br;
@@ -21,14 +18,11 @@ public class LoadBN {
 		try {
 			br = new BufferedReader(new FileReader(file_name));
 			line = br.readLine();
-//			System.out.println(line);
 			variable_line = br.readLine();
-//			System.out.println(variable_line);
 			buildBN(variable_line);
 			while(!(line=br.readLine()).equals("Queries")){
 				if(line.length()>1) {
 					String[] line2= line.split(" ");
-//					System.out.println("line2 "+ line2[0]);
 					if(line2[0].equals("Var"))
 						loadVar(br, line2[1]);
 				}
@@ -41,11 +35,7 @@ public class LoadBN {
 		}
 	}
 	
-	/**
-	 * 
-	 * @param br
-	 * @param var_name
-	 */
+	
 	private void loadVar(BufferedReader br, String var_name) {
 		
 		String line;
@@ -67,11 +57,7 @@ public class LoadBN {
 			
 	}
 	
-	/**
-	 * 
-	 * @param br
-	 * @param var_name
-	 */
+	
 	private void loadCPT(BufferedReader br, String var_name) {
 		String line;
 		try {
@@ -85,48 +71,35 @@ public class LoadBN {
 			}
 		
 	}
-	/**
-	 * 
-	 * @param br
-	 * @param var_name
-	 * @param parents_name
-	 */
+	
+	
 	private void loadParents(BufferedReader br, String var_name, String parents_name) {
-		ArrayList<String> parents = bN.getVar(var_name).getParents();
+		VariableNode var  = bN.getVar(var_name);
 		if(!(parents_name.equals("none"))){
 			for(String parent: parents_name.split(",")) {
-				parents.add(parent);
-//				System.out.println("parent: " + parent);
+				var.addParent(parent);
+				//add this var as child of his parent
+				bN.getVar(parent).addChild(var_name);
 			}
 		}
 		
 	}
 
-	/**
-	 * 
-	 * @param br
-	 * @param var_name
-	 * @param values
-	 */
-	private void loadValues(BufferedReader br, String var_name, String values) {
-		ArrayList<String> domain = bN.getVar(var_name).getVarDomain();
-		for(String val: values.split(",")) {
-			domain.add(val);
-//			System.out.println("value: "+ val);
+	
+	private void loadValues(BufferedReader br, String var_name, String vals) {
+		ArrayList<String> values = bN.getVar(var_name).getVarValues();
+		for(String val: vals.split(",")) {
+			values.add(val);
 		}
 		
 	}
 	
-	/**
-	 * 
-	 * @param br
-	 */
+	
 	private void loadQueries(BufferedReader br) {
 		String line;
 		try {
 			while((line=br.readLine())!=null) {
 				bN.addQuery(line);
-//				System.out.println("query: " + line);
 			}
 		}
 		catch(Exception e) {
@@ -137,10 +110,7 @@ public class LoadBN {
 		return bN;
 	}
 	
-	/**
-	 * 
-	 * @param line
-	 */
+	
 	private void buildBN(String line) {
 		line = line.replace(" ", "");
 		String[] variables = line.split(":")[1].split(",");
