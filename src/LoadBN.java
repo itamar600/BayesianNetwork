@@ -8,7 +8,7 @@ import java.util.ArrayList;
  *
  */
 public class LoadBN {
-	BN bN;
+	private BN bN;
 	
 	
 	public LoadBN(String file_name) {
@@ -98,7 +98,7 @@ public class LoadBN {
 	private void loadQueries(BufferedReader br) {
 		String line;
 		try {
-			while((line=br.readLine())!=null) {
+			while((line=br.readLine())!=null && line.length()>0) {
 				bN.addQuery(line);
 			}
 		}

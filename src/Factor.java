@@ -64,7 +64,6 @@ public class Factor {
 				event_factor_b = factor_b_iter.next();
 				boolean toAdd = true;
 				for (int i : same_vars_indexes.keySet()) {
-//					if (!event_factor_a.get(i).equals(event_factor_b.get(same_vars_indexes.get(i))) || this.getProb(event_factor_a) == 0 || f.getProb(event_factor_b) == 0) {
 					if (!event_factor_a.get(i).equals(event_factor_b.get(same_vars_indexes.get(i)))) {
 						toAdd = false;
 						break;
@@ -106,8 +105,6 @@ public class Factor {
 		events_iter_a = eventsIter();
 		while (events_iter_a.hasNext()) {
 			event_a = events_iter_a.next();
-//			if(this.getProb(event_a) == 0)
-//				continue;
 			new_event = new ArrayList<String> (event_a);
 			new_event.remove(index_hidden);
 			if(elimination.containsKey(new_event)) {

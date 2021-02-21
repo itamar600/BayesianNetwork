@@ -14,10 +14,12 @@ import java.util.Set;
 public class HeuristicGraph {
 	private Map<String, ArrayList<String>> neighbors;
 	private BN bN;
+	private ArrayList<String> relevant_vars;
 	
-	HeuristicGraph(BN bN){
+	HeuristicGraph(BN bN, ArrayList<String> relevant_vars){
 		neighbors = new HashMap<String, ArrayList<String>>();
 		this.bN = bN;
+		this.relevant_vars = relevant_vars;
 		build();
 	}
 	
@@ -27,18 +29,22 @@ public class HeuristicGraph {
 	 */
 	public void build() {
 		for(String var_name : bN.getVarsName()) {
+			if(!relevant_vars.contains(var_name))
+				continue;
 			ArrayList<String> neighbors_name = new ArrayList<String>();
 			neighbors_name.addAll(bN.getVar(var_name).getParents());
-			neighbors_name.addAll(bN.getVar(var_name).getChildren());
+//			neighbors_name.addAll(bN.getVar(var_name).getChildren());
 			for(String child :bN.getVar(var_name).getChildren()){
+				if(!relevant_vars.contains(child))
+					continue;
+				neighbors_name.add(child);
 				for(String parent : bN.getVar(child).getParents()) {
-					if(!neighbors_name.contains(parent) && !var_name.equals(parent))
+					if(!neighbors_name.contains(parent) && !var_name.equals(parent) && relevant_vars.contains(parent))
 						neighbors_name.add(parent);
 				}
 			}
 			neighbors.put(var_name, neighbors_name);
 		}
-		System.out.println("neighbors: " + neighbors);
 	}
 	
 	/**
@@ -48,7 +54,6 @@ public class HeuristicGraph {
 	public void removingVar(String var_name) {
 		if(neighbors.size()==1)
 			return;
-		System.out.println("remove var: " + var_name );
 		if(getNeighbors(var_name).size() < 2) {
 			removeNeighbor(getNeighbors(var_name).get(0), var_name);
 			neighbors.remove(var_name);
@@ -90,8 +95,6 @@ public class HeuristicGraph {
 	 */
 	public int computeNeighborsWeight(String var_name, ArrayList<String> evidence ) {
 		int sum_neibhors_multi_vals = 1;
-		System.out.println("var name: " + var_name);
-		System.out.println("g: " + neighbors);
 		for(String nei : getNeighbors(var_name)) {
 			if(evidence.contains(nei))
 				continue;

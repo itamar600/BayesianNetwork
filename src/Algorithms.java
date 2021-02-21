@@ -10,10 +10,10 @@ import java.util.Map;
  *
  */
 public class Algorithms {
-	BN bN;
-	ArrayList<String> query_vars;
-	ArrayList<String> query_vals;
-	String output;
+	private BN bN;
+	private ArrayList<String> query_vars;
+	private ArrayList<String> query_vals;
+	private String output;
 
 	public Algorithms(BN bN) {
 		this.bN = bN;
@@ -172,7 +172,7 @@ public class Algorithms {
 		if(algo_num == 2)
 			hidden_variables.sort(null);
 		else
-			heuristicSort(hidden_variables);
+			heuristicSort(hidden_variables, relevant_vars);
 		ArrayList<Integer> hidden_factors_indexes;
 		String hidden_name;
 		ArrayList<Integer> indexes_to_join = null;
@@ -182,7 +182,6 @@ public class Algorithms {
 			hidden_factors_indexes = new ArrayList<Integer>();
 			int i = 0;
 			while(factors.size() > 1) {
-				//int j=-1;
 				hidden_factors_indexes.clear();
 				for( i = 0; i < factors.size(); i++ ) {
 					if(factors.get(i).getVarsName().contains(hidden_name))
@@ -191,14 +190,11 @@ public class Algorithms {
 				if(hidden_factors_indexes.size() < 2)
 					break;
 				indexes_to_join = pickTwoToJoin(hidden_factors_indexes, factors);
-				System.out.println("Factors to join: " + factors.get(indexes_to_join.get(0)) + ", " + factors.get(indexes_to_join.get(1)));
 				factors.set(indexes_to_join.get(0), factors.get(indexes_to_join.get(0)).join(factors.get(indexes_to_join.get(1))));
 				int index_to_remove = indexes_to_join.get(1);
 				factors.remove(index_to_remove);
-				System.out.println("Factor after join: " + factors.get(indexes_to_join.get(0)));
 				}
 			factors.get(indexes_to_join.get(0)).elimination(hidden_name);
-			System.out.println("events, size: "+ factors.get(indexes_to_join.get(0)).getEvents() + ", " + factors.get(indexes_to_join.get(0)).getEvents().size());
 			if(factors.get(indexes_to_join.get(0)).getEvents().size() == 1) {
 				int index_to_remove = indexes_to_join.get(0);
 				sum_x += factors.get(index_to_remove).getSumX();
@@ -208,58 +204,50 @@ public class Algorithms {
 		}
 			
 		for(int i=0; i<factors.size()-1; i++) {
-			System.out.println("Factors to join: " + factors.get(0) + ", " + factors.get(1));
 			factors.set(0, factors.get(0).join(factors.get(1)));
 			factors.remove(1);
-			System.out.println("Factor after join: " + factors.get(0));
 			
 		}
 		sum_x += factors.get(0).getSumX();
 		sum_plus += factors.get(0).getSumPlus();
 		int index_var = factors.get(0) .getVarsName().indexOf(query_vars.get(0));
 		String val = query_vals.get(0);
-		double prob=0 , sum=0;
+		double prob=0 , sum=-1;
 		ArrayList<String> event;
 		Iterator<ArrayList<String>> events = factors.get(0).eventsIter();
 		//for the normalization of the probability
 		while(events.hasNext()) {
 			event = events.next();
-			if(sum == 0) {
+			if(sum == -1) {
 				sum =  factors.get(0).getProb(event);
-				System.out.println("sum1 : " + sum);
 			}
 			else {
 				sum +=  factors.get(0).getProb(event);
 				sum_plus++;
-				System.out.println("sum1 : " + sum);
 			}
 			if(event.get(index_var).equals(val)) {
 				prob = factors.get(0).getProb(event);
-				System.out.println("prob : " + prob);
 			}
 		}
-		System.out.println("prob , sum : " + prob + "," +  sum);
 		output += "" +new DecimalFormat("0.00000").format (prob/sum) +","+ sum_plus + "," + sum_x + "\n";
-		System.out.println("" +new DecimalFormat("0.00000").format (prob/sum) +","+ sum_plus + "," + sum_x + "\n");
 	}
 	
 	/**
 	 * The method selects an order of variables in a greedy way, according to the variable whose neighbors weight is lowest.
 	 * @param hidden_variables
 	 */
-	private void heuristicSort(ArrayList<String> hidden_variables) {
+	private void heuristicSort(ArrayList<String> hidden_variables, ArrayList<String> relevant_vars ) {
 		ArrayList<String> sort_hidden_variables = new ArrayList<String>();
 		ArrayList<String> evidence = new ArrayList<String>();
 		evidence.addAll(query_vars);
 		evidence.remove(0);
-		HeuristicGraph g = new HeuristicGraph(bN);
+		HeuristicGraph g = new HeuristicGraph(bN, relevant_vars);
 		int min_weight;
 		int weight;
 		String min_name = "";
 		while(sort_hidden_variables.size() < hidden_variables.size()) {
 			min_weight = Integer.MAX_VALUE;
 			min_name = "";
-//			System.out.println("sort: " +g.getVars() );
 			for(String var_name : g.getVars()) {
 				weight = g.computeNeighborsWeight(var_name, evidence);
 				if(weight < min_weight) {
@@ -309,6 +297,7 @@ public class Algorithms {
 	
 	/**
 	 * The method returns a Cartesian product of the values of the hidden variables.
+	 * Base on https://stackoverflow.com/questions/9591561/java-cartesian-product-of-a-list-of-lists.
 	 * @param hidden_variables
 	 * @return
 	 */
@@ -333,14 +322,14 @@ public class Algorithms {
 
 	
 	/**
-	 * 
+	 * The method returns indexes of the two factors that joining together will add the fewest rows, 
+	 * and if there are several such pairs then those whose ascii sum of the variables is the smallest.
 	 * @param hidden_factors_indexes
 	 * @param factors
 	 * @return
 	 */
 	private ArrayList<Integer> pickTwoToJoin(ArrayList<Integer> hidden_factors_indexes, ArrayList<Factor> factors ) {
 		int min_num_lines = Integer.MAX_VALUE;
-		//int num_lines = 1;
 		ArrayList<String> diff_vars; 
 		ArrayList<Integer> indexes_to_put;
 		Map<Integer, ArrayList<Integer>> num_lines_and_indexes = new HashMap<Integer, ArrayList<Integer>>();
@@ -355,7 +344,7 @@ public class Algorithms {
 				var = bN.getVar(var_name);
 				num_lines *= var.getVarValues().size();
 			}
-			//computing the number that will be adding while doing join between thats factors
+//			computing the number that will be adding while doing join between thats factors
 			num_lines = num_lines - Math.max(factor_a.getEvents().size(), factor_b.getEvents().size());
 			if(num_lines<min_num_lines)
 				min_num_lines = num_lines;
@@ -397,7 +386,8 @@ public class Algorithms {
 	} 
 
 	/**
-	 * 
+	 * The method finds all the variables belonging to hidden variables or query variable
+	 * that are included in the variables of the two factors.
 	 * @param vars_name_a
 	 * @param vars_name_b
 	 * @return
@@ -416,7 +406,7 @@ public class Algorithms {
 	}
 	
 	/**
-	 * 
+	 * The method return if the variable with the name var_name is relevant to the query solution.
 	 * @param var_name
 	 * @return
 	 */
@@ -430,7 +420,8 @@ public class Algorithms {
 	}
 	
 	/**
-	 * 
+	 * The method returns whether the variable with the name var_name is the ancestor
+	 * of one of the variables in parents_name or is one of them.
 	 * @param var_name
 	 * @param parents_name
 	 * @return
